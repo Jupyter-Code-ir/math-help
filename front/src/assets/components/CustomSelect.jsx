@@ -12,7 +12,7 @@ export default function CustomSelect({ options = [], value, onChange, placeholde
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setCoords({
-        top: rect.bottom + window.scrollY + 4, // 4px gap below button
+        top: rect.bottom + window.scrollY + 4, 
         left: rect.left + window.scrollX,
         width: rect.width,
       });
@@ -32,7 +32,7 @@ export default function CustomSelect({ options = [], value, onChange, placeholde
 
   useEffect(() => {
     if (isOpen) {
-      updateCoords(); // Recalculate coords when dropdown opens
+      updateCoords();
     }
   }, [isOpen]);
 

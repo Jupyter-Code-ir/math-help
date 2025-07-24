@@ -817,22 +817,7 @@ class SetsAlgorithm:
         - در نهایت عبارت پردازش و نتیجه بازگردانده می‌شود.
         - اعتبارسنجی عبارت ورودی و مدیریت خطای کامل اضافه شده است.
         """
-        try:
-            SetsAlgorithm.validate_input_expression(text,self.set_names)
-        except ValueError as e:
-            return str(e)
-        text = text.replace('∩', '&').replace('∪', '|')
 
-        # بررسی عمق متغیرها
-        var_depths = self.check_variable_depths(text)
-        for var, depths in var_depths.items():
-            # اگر متغیر تعریف نشده باشد
-            if var.upper() not in self.set_of_sets:
-                return f"متغیر '{var}' تعریف نشده است!"
-            # اگر متغیر تنها در عمق 0 (خارج از مجموعه‌ها) ظاهر شده باشد
-            if all(d == 0 for d in depths):
-                if var.upper() not in self.set_of_sets:
-                    return f"متغیر '{var}' تعریف نشده است!"
         # تبدیل عبارت به فرمت مناسب برای eval
         transformed_text = SetsAlgorithm.parse_set_string(text)
         # آماده‌سازی دیکشنری متغیرها (با توجه به اینکه ممکن است نام‌ها به حروف کوچک نیز مورد استفاده قرار گیرند)
@@ -1238,11 +1223,11 @@ class set_API(APIView):
         if func=="member_view":
             rsp={}
             for name, val in set_dic.items():
-                set_obj = SetsAlgorithm.to_frozenset(val)
-                member_view = SetsAlgorithm.set_to_str(set_obj)
+                set_fro = SetsAlgorithm.to_frozenset(val)
+                member_view = SetsAlgorithm.set_to_str(set_fro)
                 rsp[name] = {
                 "memb": member_view,
-                "number":len(set_obj)}
+                "number":len(set_fro)}
             return Response(rsp)
         elif func == "parsub":
             key = data.get("key")
@@ -1252,7 +1237,7 @@ class set_API(APIView):
             
             subset, has_more_subset = SetsAlgorithm.subsets_one_set(set_val, offset, limit)
             part = SetsAlgorithm.partitions_to_str(set_val, offset, limit)
-            has_more_part = len(part) == limit  # اگر تعداد برابر limit باشه، افرازهای بیشتری وجود داره
+            has_more_part = len(part) == limit 
             
             rsp = {
                 "subset": subset,
@@ -1261,8 +1246,54 @@ class set_API(APIView):
                 "has_more_part": has_more_part
             }
             return Response(rsp)
+        elif func == "ven" : 
+            set_object=SetsAlgorithm(set_dic)
+            ven=set_object.draw_venn() if len(set_dic)<4 else set_object.draw_venn_4_more()
+            region=set_object.get_region_info()
+            rsp = {
+                "ven" : ven,
+                "region" : region
+            }
+            return Response(rsp)
+        elif func=="calc_check":
+            set_object=SetsAlgorithm(set_dic)
+            text=data.get("text")
+            text=set_API.calc_sets(text)
+            text = text.replace('∩', '&').replace('∪', '|')
 
+            set_names=list(set_dic.keys())
+            try:
+                SetsAlgorithm.validate_input_expression(text,set_names)
+            except ValueError as e:
+                rsp={"error":e}
+                return Response(rsp)
 
-
-
-
+            var_depths = set_object.check_variable_depths(expression=text)
+            for var, depths in var_depths.items():
+                if var.upper() not in set_dic:
+                    rsp={"error":f"متغیر '{var}' تعریف نشده است!"}
+                    return Response(rsp)
+                if all(d == 0 for d in depths):
+                    if var.upper() not in set_dic:
+                        rsp={"error":f"متغیر '{var}' تعریف نشده است!"}
+                        return Response(rsp)
+            return Response({"error":"None"})
+    @staticmethod
+    def calc_sets(text):
+        text=str(text)
+        for n,i in enumerate(text):
+            words=[]
+            if i=="{":
+                words.append(i)
+                deep=1
+                for j in text[n+1:]:
+                    if j=="{":
+                        deep+=1
+                    elif j=="}":
+                        words.append(j)
+                        deep-=1
+                        if deep==0:
+                            text=text.replace(''.join(words),(SetsAlgorithm.fix_set_variables(''.join(words))))
+                    words.append(j)
+        return text
+    
