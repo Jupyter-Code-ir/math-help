@@ -35,7 +35,6 @@ export default function SetResult() {
   const [isAnimatingTabSets, setIsAnimatingTabSets] = useState(false);
   const [loadMoreFlag, setLoadMoreFlag] = useState(false);
   const limit = 5000;
-
   const formatData = (data, dataType = "subset") => {
     let baseIndex = 0;
     if (dataType === "info") {
@@ -56,9 +55,6 @@ export default function SetResult() {
       });
       return tableData;
     }
-    if (!data || typeof data !== "object") {
-      return [];
-    }
     if (dataType === "part") {
       if (!Array.isArray(data)) {
         return [];
@@ -67,6 +63,15 @@ export default function SetResult() {
         شماره: index + 1 + groupNumberPar * limit,
         نوع: `افراز ${index + 1 + groupNumberPar * limit}`,
         اعضا: Array.isArray(item) ? item.join(", ") : String(item || ""),
+      }));
+    }
+    if (dataType === "region") {
+      if (!data || typeof data !== "object") {
+        return [];
+      }
+      return Object.keys(data).map((key) => ({
+        ناحیه: key,
+        مقدار: Array.isArray(data[key]) ? data[key].join(", ") : String(data[key] || ""),
       }));
     }
     return Object.keys(data).flatMap((key, groupIndex) => {
@@ -133,7 +138,7 @@ export default function SetResult() {
     } else if (selectedTabSets === "otherInfo") {
       sendRequestInfo();
     }
-  }, [selectedTabSets]);
+  }, [selectedTabSets,venData,info]);
 
   useEffect(() => {
     const sendRequestParsub = async () => {
@@ -330,7 +335,9 @@ export default function SetResult() {
                     setPartOffset(0);
                     setSubsetPageIndex(0);
                     setPartPageIndex(0);
+
                   }}
+
                 >
                   {key}
                 </button>
@@ -358,6 +365,7 @@ export default function SetResult() {
                       setSubsetPageIndex(0);
                       setPartPageIndex(0);
                     }}
+
                   >
                     {key}
                   </button>
@@ -374,7 +382,7 @@ export default function SetResult() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
               transition={{ duration: 0.5 }}
-              className="set text-lg lg:max-w-1/2 lg:min-w-1/2 shadow-sm flex flex-col gap-5 p-5 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full"
+              className="set text-lg lg:max-w-1/2 max-h-[588.9px] lg:min-w-1/2 shadow-sm flex flex-col gap-5 p-5 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full"
               onAnimationStart={() => setIsAnimatingSetKey(true)} 
               onAnimationComplete={() => setIsAnimatingSetKey(false)} 
             >
@@ -466,8 +474,8 @@ export default function SetResult() {
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="sets h-full text-lg shadow-sm flex flex-wrap content-start p-5 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full">
-          <div className="mx-auto gap-2 h-fit p-3 mt-3 justify-center mb-4 w-fit relative right-[0px] text-lg shadow-sm flex p-1 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
+        <div className="sets h-full max-h-[588.9px] text-lg shadow-sm flex flex-wrap content-start  rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full">
+          <div className="mx-auto gap-2 h-fit p-3 m-5 justify-center mb-4 w-fit relative right-[0px] text-lg shadow-sm flex p-1 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
             <button
               type="button"
               className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
@@ -503,39 +511,42 @@ export default function SetResult() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5 }}
-                className="w-full flex flex-col items-center"
+                className="w-full flex overflow-auto max-h-[500px] flex-col items-center"
                 onAnimationStart={() => setIsAnimatingTabSets(true)}  
                 onAnimationComplete={() => setIsAnimatingTabSets(false)}  
               >
-                {isLoading && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex justify-center items-center"
-                  >
-                    <div className="spinner"></div>
-                  </motion.div>
+              <div className="button-ven-control mb-3">
+                <button
+                  type="button"
+                  className="shadow-black/20  transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
+                  onClick={() => {
+                    setVenData({ image: null, region: null });
+                  }}
+                >
+                  بارگذاری دوباره
+                </button>
+              </div>
+              <div className="flex flex-col items-center gap-5">
+                {venData.image&&(
+                  <motion.img
+                  key={venData.image}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.5 }}
+                  src={venData.image}
+                  alt="Venn Diagram"
+                  className="max-w-full h-auto rounded-4xl shadow-md bg-blue-950/30"
+                />
                 )}
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-red-500 text-center"
-                  >
-                    {error}
-                  </motion.div>
-                )}
-                  <div className="flex flex-col items-center gap-5">
-                    <img
 
-                      src={venData.image}
-                      alt="Venn Diagram"
-                      className="max-w-full h-auto rounded-4xl shadow-md bg-blue-950/30"
-                    />
-                    {console.log(venData.region)}
-                  </div>
+                <DataTable
+                  data={formatData(venData.region, "region")}
+                  showDelete={false}
+                  maxHeight={306}
+                  enablePagination={false}
+                />
+              </div>
               </motion.div>
             )}
             {selectedTabSets === "calc" && (
@@ -545,7 +556,7 @@ export default function SetResult() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5 }}
-                className="w-full flex flex-col items-stretch "
+                className="w-full flex m-5 flex-col items-stretch "
                 onAnimationStart={() => setIsAnimatingTabSets(true)}  
                 onAnimationComplete={() => setIsAnimatingTabSets(false)}  
               >
@@ -635,7 +646,7 @@ export default function SetResult() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
                 transition={{ duration: 0.5 }}
-                className="w-full flex  flex-col items-stretch"
+                className="w-full flex  m-5 flex-col items-stretch"
                 onAnimationStart={() => setIsAnimatingTabSets(true)}  
                 onAnimationComplete={() => setIsAnimatingTabSets(false)}  
               >
