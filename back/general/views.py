@@ -4,8 +4,10 @@ from rest_framework.response import Response
 from rest_framework import status
 import base64
 import time
+from server import settings
 import json
-
+import uuid
+import os
 import matplotlib.pyplot as plt
 from matplotlib_venn import venn2, venn3
 import venn
@@ -1068,7 +1070,7 @@ class SetsAlgorithm:
                         notation = inc_notation + '-' + exc_notation
                     else:
                         notation = inc_notation
-                    result[notation] = region
+                    result[notation] = self.set_to_str(region)
         return result
     @staticmethod
     def calc_sets(text):
@@ -1264,12 +1266,21 @@ class set_API(APIView):
             }
             return Response(rsp)
         elif func == "ven" : 
-            set_object=SetsAlgorithm(set_dic)
-            ven=set_object.draw_venn() if len(set_dic)<4 else set_object.draw_venn_4_more()
-            region=set_object.get_region_info()
+
+            set_object = SetsAlgorithm(set_dic)
+            ven_fig = set_object.draw_venn() if len(set_dic) < 4 else set_object.draw_venn_4_more()
+            region = set_object.get_region_info()
+            img_id = str(uuid.uuid4())
+            img_name = f"venn_{img_id}.png"
+            static_dir = os.path.join(settings.BASE_DIR, "static", "venn")
+            os.makedirs(static_dir, exist_ok=True)
+            img_path = os.path.join(static_dir, img_name)
+            ven_fig.savefig(img_path, format="png", bbox_inches="tight",transparent=True)
+            plt.close(ven_fig)
+            img_url = request.build_absolute_uri(f"/static/venn/{img_name}")
             rsp = {
-                "ven" : ven,
-                "region" : region
+                "ven_url": img_url,
+                "region": region
             }
             return Response(rsp)
         elif func == "calc_check":

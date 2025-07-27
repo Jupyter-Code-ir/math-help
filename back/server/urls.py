@@ -4,7 +4,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from general.views import aiResponse_API_NLP , set_API
 
 
-
 api_urls = [
     path("token", TokenObtainPairView.as_view(), name="token"),
     path("token/refresh", TokenRefreshView.as_view(), name="refresh_token"),

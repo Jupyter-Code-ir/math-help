@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import DataTable from "./table";
 import classNames from "classnames";
+import { set } from "lodash";
 
 export default function SetResult() {
   const { state } = useLocation();
@@ -32,6 +33,7 @@ export default function SetResult() {
   const [info, setInfo] = useState({});
   const [isAnimatingSetKey, setIsAnimatingSetKey] = useState(false);  
   const [isAnimatingTabSets, setIsAnimatingTabSets] = useState(false);
+  const [loadMoreFlag, setLoadMoreFlag] = useState(false);
   const limit = 5000;
 
   const formatData = (data, dataType = "subset") => {
@@ -84,6 +86,7 @@ export default function SetResult() {
 
   useEffect(() => {
     const sendRequestVen = async () => {
+      if (venData.image) return; 
       try {
         setError(null);
         const response = await fetch("http://localhost:8000/api/set/", {
@@ -97,7 +100,7 @@ export default function SetResult() {
         if (!response.ok) throw new Error(`خطا: ${response.status}`);
         const data = await response.json();
         if (data.error) throw new Error(data.error);
-        setVenData({ image: data.ven, region: data.region });
+        setVenData({ image: data.ven_url, region: data.region });
       } catch (error) {
         setError(`خطا: ${error.message}`);
       } finally {
@@ -105,6 +108,7 @@ export default function SetResult() {
       }
     };
     const sendRequestInfo = async () => {
+      if (Object.keys(info).length > 0) return;
       try {
         setError(null);
         const response = await fetch("http://localhost:8000/api/set/", {
@@ -133,8 +137,10 @@ export default function SetResult() {
 
   useEffect(() => {
     const sendRequestParsub = async () => {
+      if (!loadMoreFlag && (subsets.length > 0 && partitions.length > 0)) return;
       setIsLoading(true);
       try {
+        
         setError(null);
         const offset = selectedTabSet === "subset" ? subsetOffset : partOffset;
         const response = await fetch("http://localhost:8000/api/set/", {
@@ -167,6 +173,7 @@ export default function SetResult() {
     };
     if (selectedSetKey) {
       sendRequestParsub();
+      setLoadMoreFlag(false);
     }
   }, [selectedSetKey, subsetOffset, partOffset, selectedTabSet]);
 
@@ -178,6 +185,7 @@ export default function SetResult() {
       setPartOffset((prev) => prev + limit);
       setGroupNumberPar(groupNumberPar + 1);
     }
+    setLoadMoreFlag(true)
   };
 
   const calcCheck = async (text) => {
@@ -519,23 +527,15 @@ export default function SetResult() {
                     {error}
                   </motion.div>
                 )}
-                {venData.image && (
                   <div className="flex flex-col items-center gap-5">
                     <img
-                      src={`data:image/jpeg;base64,${venData.image}`}
+
+                      src={venData.image}
                       alt="Venn Diagram"
-                      className="max-w-full h-auto rounded-lg shadow-md"
+                      className="max-w-full h-auto rounded-4xl shadow-md bg-blue-950/30"
                     />
-                    {venData.region && (
-                      <div className="text-white">
-                        <h3 className="text-lg font-bold mb-2">مناطق ون:</h3>
-                        <pre className="bg-blue-950/20 p-4 rounded-lg">
-                          {JSON.stringify(venData.region, null, 2)}
-                        </pre>
-                      </div>
-                    )}
+                    {console.log(venData.region)}
                   </div>
-                )}
               </motion.div>
             )}
             {selectedTabSets === "calc" && (
@@ -665,3 +665,5 @@ export default function SetResult() {
     </motion.div>
   );
 }
+
+                

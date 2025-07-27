@@ -45,7 +45,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": SECRET_KEY,  # این خیلی مهمه!
+    "SIGNING_KEY": SECRET_KEY,  
     "VERIFYING_KEY": None,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
@@ -63,8 +63,6 @@ REST_FRAMEWORK = {
 #                                        CORS                                       |
 #                                                                                   |
 # ----------------------------------------------------------------------------------+
-
-
 ALLOWED_HOSTS = ["*"]
 
 CORS_ALLOWED_ORIGINS = [
@@ -164,8 +162,10 @@ DATABASES = {
     }
 }
 
-STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+STATIC_ROOT = STATIC_URL = "/static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+
 
 
 # ----------------------------------------------------------------------------------+
