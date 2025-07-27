@@ -896,8 +896,8 @@ class SetsAlgorithm:
         """
         info = {
             "subsets_info": {
-                f"Set {self.set_names[i]}": {
-                    f"Set {self.set_names[j]}": set(self.sets[i]).issubset(set(self.sets[j]))
+                f" {self.set_names[i]}": {
+                    f" {self.set_names[j]}": set(self.sets[i]).issubset(set(self.sets[j]))
                     for j in range(self.num_sets) if i != j
                 }
                 for i in range(self.num_sets)
@@ -1070,7 +1070,24 @@ class SetsAlgorithm:
                         notation = inc_notation
                     result[notation] = region
         return result
-
+    @staticmethod
+    def calc_sets(text):
+        text=str(text)
+        for n,i in enumerate(text):
+            words=[]
+            if i=="{":
+                words.append(i)
+                deep=1
+                for j in text[n+1:]:
+                    if j=="{":
+                        deep+=1
+                    elif j=="}":
+                        words.append(j)
+                        deep-=1
+                        if deep==0:
+                            text=text.replace(''.join(words),(SetsAlgorithm.fix_set_variables(''.join(words))))
+                    words.append(j)
+        return text
 # --------------------------------------------------
 #  این کلاس تمامی  ai agent  را کنترل میکند
 # --------------------------------------------------
@@ -1255,45 +1272,38 @@ class set_API(APIView):
                 "region" : region
             }
             return Response(rsp)
-        elif func=="calc_check":
-            set_object=SetsAlgorithm(set_dic)
-            text=data.get("text")
-            text=set_API.calc_sets(text)
-            text = text.replace('∩', '&').replace('∪', '|')
-
-            set_names=list(set_dic.keys())
+        elif func == "calc_check":
+            set_object = SetsAlgorithm(set_dic)
+            text = data.get("text")
+            if not text:
+                return Response({"error": "عبارت ورودی خالی است!"})
             try:
-                SetsAlgorithm.validate_input_expression(text,set_names)
-            except ValueError as e:
-                rsp={"error":e}
-                return Response(rsp)
-
-            var_depths = set_object.check_variable_depths(expression=text)
-            for var, depths in var_depths.items():
-                if var.upper() not in set_dic:
-                    rsp={"error":f"متغیر '{var}' تعریف نشده است!"}
-                    return Response(rsp)
-                if all(d == 0 for d in depths):
+                text = SetsAlgorithm.calc_sets(text)
+                text = text.replace('∩', '&').replace('∪', '|')
+                set_names = list(set_dic.keys())
+                SetsAlgorithm.validate_input_expression(text, set_names)
+                var_depths = set_object.check_variable_depths(expression=text)
+                for var, depths in var_depths.items():
                     if var.upper() not in set_dic:
-                        rsp={"error":f"متغیر '{var}' تعریف نشده است!"}
-                        return Response(rsp)
-            return Response({"error":"None"})
-    @staticmethod
-    def calc_sets(text):
-        text=str(text)
-        for n,i in enumerate(text):
-            words=[]
-            if i=="{":
-                words.append(i)
-                deep=1
-                for j in text[n+1:]:
-                    if j=="{":
-                        deep+=1
-                    elif j=="}":
-                        words.append(j)
-                        deep-=1
-                        if deep==0:
-                            text=text.replace(''.join(words),(SetsAlgorithm.fix_set_variables(''.join(words))))
-                    words.append(j)
-        return text
-    
+                        return Response({"error": f"متغیر '{var}' تعریف نشده است!"})
+                    if all(d == 0 for d in depths):
+                        if var.upper() not in set_dic:
+                            return Response({"error": f"متغیر '{var}' تعریف نشده است!"})
+                return Response({"status": "valid"})
+            except ValueError as e:
+                return Response({"error": str(e).replace('&', '∩').replace('|', '∪')})
+            except Exception as e:
+                return Response({"error": f"خطا در اعتبارسنجی عبارت: {str(e)}"})
+        elif func == "calc":
+            set_object = SetsAlgorithm(set_dic)
+            text = data.get("text")
+            text = SetsAlgorithm.calc_sets(text)
+            text = text.replace('∩', '&').replace('∪', '|')
+            rsp=set_object.U_I_Ms_advance(text)
+            return Response(rsp)
+        elif func=="other_info":
+            set_object = SetsAlgorithm(set_dic)
+            rsp=set_object.check_other_information()
+            return Response(rsp)
+
+

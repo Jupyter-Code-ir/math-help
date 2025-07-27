@@ -26,21 +26,39 @@ export default function SetResult() {
   const [groupNumberSub, setGroupNumberSub] = useState(0);
   const [groupNumberPar, setGroupNumberPar] = useState(0);
   const [calcTextIn, setCalcTextIn] = useState("");
+  const [calcTextOut, setCalcTextOut] = useState("");
   const [calcError, setCalcError] = useState("");
   const [venData, setVenData] = useState({ image: null, region: null });
-
+  const [info, setInfo] = useState({});
+  const [isAnimatingSetKey, setIsAnimatingSetKey] = useState(false);  
+  const [isAnimatingTabSets, setIsAnimatingTabSets] = useState(false);
   const limit = 5000;
 
-  const formatSubsetData = (data, dataType = "subset") => {
+  const formatData = (data, dataType = "subset") => {
     let baseIndex = 0;
+    if (dataType === "info") {
+      if (!data.subsets_info) {
+        return [];
+      }
+      const setNames = Object.keys(data.subsets_info);
+      const tableData = setNames.map((setName) => {
+        const row = { "نام مجموعه": setName };
+        setNames.forEach((otherSet) => {
+          if (setName === otherSet) {
+            row[otherSet] = "خود";
+          } else {
+            row[otherSet] = data.subsets_info[setName][otherSet] ? "✓" : "✗";
+          }
+        });
+        return row;
+      });
+      return tableData;
+    }
     if (!data || typeof data !== "object") {
-      console.warn(`Invalid data for ${dataType}:`, data);
       return [];
     }
-
     if (dataType === "part") {
       if (!Array.isArray(data)) {
-        console.warn("Invalid partitions data:", data);
         return [];
       }
       return data.map((item, index) => ({
@@ -49,20 +67,16 @@ export default function SetResult() {
         اعضا: Array.isArray(item) ? item.join(", ") : String(item || ""),
       }));
     }
-
     return Object.keys(data).flatMap((key, groupIndex) => {
       const group = data[key];
       if (!Array.isArray(group)) {
-        console.warn(`Invalid subset group for key ${key}:`, group);
         return [];
       }
-
       const result = group.map((item, index) => ({
         شماره: baseIndex + index + 1 + groupNumberSub * limit,
         نوع: `${key}`,
         اعضا: Array.isArray(item) ? item.join(", ") : String(item || ""),
       }));
-
       baseIndex += group.length;
       return result;
     });
@@ -70,7 +84,6 @@ export default function SetResult() {
 
   useEffect(() => {
     const sendRequestVen = async () => {
-      setIsLoading(true);
       try {
         setError(null);
         const response = await fetch("http://localhost:8000/api/set/", {
@@ -91,10 +104,32 @@ export default function SetResult() {
         setIsLoading(false);
       }
     };
+    const sendRequestInfo = async () => {
+      try {
+        setError(null);
+        const response = await fetch("http://localhost:8000/api/set/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            func: "other_info",
+            set: state?.sets || [],
+          }),
+        });
+        if (!response.ok) throw new Error(`خطا: ${response.status}`);
+        const data = await response.json();
+        setInfo(data);
+      } catch (error) {
+        setError(`خطا: ${error.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     if (selectedTabSets === "ven") {
       sendRequestVen();
+    } else if (selectedTabSets === "otherInfo") {
+      sendRequestInfo();
     }
-  }, [selectedTabSets, state?.sets]);
+  }, [selectedTabSets]);
 
   useEffect(() => {
     const sendRequestParsub = async () => {
@@ -118,10 +153,10 @@ export default function SetResult() {
         const data = await response.json();
         if (data.error) throw new Error(data.error);
         if (selectedTabSet === "subset") {
-          setSubsets((prev) => [...prev, ...formatSubsetData(data.subset)]);
+          setSubsets((prev) => [...prev, ...formatData(data.subset)]);
           setHasMoreSubset(data.has_more_subset);
         } else {
-          setPartitions((prev) => [...prev, ...formatSubsetData(data.part, "part")]);
+          setPartitions((prev) => [...prev, ...formatData(data.part, "part")]);
           setHasMorePart(data.has_more_part);
         }
       } catch (error) {
@@ -151,7 +186,6 @@ export default function SetResult() {
       setCalcError("");
       return;
     }
-
     try {
       setCalcError("");
       const response = await fetch("http://localhost:8000/api/set/", {
@@ -165,11 +199,9 @@ export default function SetResult() {
           set: state?.sets || [],
         }),
       });
-
       if (!response.ok) {
         throw new Error("خطا در دریافت پاسخ از سرور");
       }
-
       const data = await response.json();
       if (data.error && data.error !== "None") {
         setCalcError(data.error);
@@ -186,7 +218,6 @@ export default function SetResult() {
       setCalcError(calcTextIn ? calcError : "لطفاً عبارت معتبر وارد کنید");
       return;
     }
-
     try {
       const response = await fetch("http://localhost:8000/api/set/", {
         method: "POST",
@@ -199,30 +230,23 @@ export default function SetResult() {
           set: state?.sets || [],
         }),
       });
-
       if (!response.ok) {
         throw new Error("خطا در دریافت پاسخ از سرور");
       }
-
       const data = await response.json();
-      if (data.error) {
-        setCalcError(data.error);
-      } else {
-        const resultId = Date.now().toString();
-        navigate(`/sets/result/${resultId}`, { state: { data: data.result, sets: state?.sets || [] } });
-      }
+      setCalcTextOut(data);
     } catch (err) {
       setCalcError("خطایی در محاسبه رخ داد! لطفاً دوباره تلاش کنید");
     }
   };
 
   const handleUnionClick = () => {
-    const newText = calcTextIn +"∪";
+    const newText = calcTextIn + "∪";
     calcCheck(newText);
   };
 
   const handleIntersectionClick = () => {
-    const newText = calcTextIn +"∩";
+    const newText = calcTextIn + "∩";
     calcCheck(newText);
   };
 
@@ -271,6 +295,14 @@ export default function SetResult() {
       exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.5 }}
       className="relative flex mx-auto gap-5 p-4 lg:max-w-[1024px] lg:top-30 top-50 rounded-4xl shadow-black/20 bg-blue-950/5 backdrop-blur-sm backdrop-brightness-200 w-full"
+      onAnimationStart={() => {
+        setIsAnimatingSetKey(true);
+        setIsAnimatingTabSets(true);
+      }}
+      onAnimationComplete={() => {
+        setIsAnimatingSetKey(false);
+        setIsAnimatingTabSets(false);
+      }}
     >
       <style>{spinnerStyles}</style>
       {Object.keys(setData).length > 1 && (
@@ -281,7 +313,7 @@ export default function SetResult() {
                 <button
                   type="button"
                   className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
-                  disabled={selectedSetKey === key}
+                  disabled={selectedSetKey === key || isAnimatingSetKey} 
                   onClick={() => {
                     setSelectedSetKey(key);
                     setSubsets([]);
@@ -301,14 +333,14 @@ export default function SetResult() {
       )}
       <div className="flex w-full gap-5 flex-col lg:flex-row items-center justify-center">
         {Object.keys(setData).length > 1 && (
-          <div>
-            <ul className="sets-button p-2 relative right-[0px] text-lg shadow-sm flex lg:hidden p-1 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
+          <div className="w-fit mx-auto">
+            <ul className="sets-button  w-fit p-2 relative right-[0px] text-lg shadow-sm flex lg:hidden p-1 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
               {Object.keys(setData).map((key) => (
                 <li key={key} className="m-1">
                   <button
                     type="button"
                     className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
-                    disabled={selectedSetKey === key}
+                    disabled={selectedSetKey === key || isAnimatingSetKey}
                     onClick={() => {
                       setSelectedSetKey(key);
                       setSubsets([]);
@@ -335,6 +367,8 @@ export default function SetResult() {
               exit={{ opacity: 0, x: 50 }}
               transition={{ duration: 0.5 }}
               className="set text-lg lg:max-w-1/2 lg:min-w-1/2 shadow-sm flex flex-col gap-5 p-5 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full"
+              onAnimationStart={() => setIsAnimatingSetKey(true)} 
+              onAnimationComplete={() => setIsAnimatingSetKey(false)} 
             >
               <div className="text-lg justify-center text-white items-center shadow-sm flex max-h-1/7 w-full gap-12 p-5 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
                 <span className="text-nowrap">نام مجموعه: {selectedSetKey}</span>
@@ -350,7 +384,7 @@ export default function SetResult() {
                   <button
                     type="button"
                     className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
-                    disabled={selectedTabSet === "subset"}
+                    disabled={selectedTabSet === "subset" } 
                     onClick={() => setSelectedTabSet("subset")}
                   >
                     <span>زیر مجموعه‌ها</span>
@@ -358,7 +392,7 @@ export default function SetResult() {
                   <button
                     type="button"
                     className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
-                    disabled={selectedTabSet === "part"}
+                    disabled={selectedTabSet === "part" } 
                     onClick={() => setSelectedTabSet("part")}
                   >
                     <span>افرازها</span>
@@ -371,15 +405,17 @@ export default function SetResult() {
                     onClick={loadMore}
                     disabled={
                       (selectedTabSet === "subset" && !hasMoreSubset) ||
-                      (selectedTabSet === "part" && !hasMorePart)
+                      (selectedTabSet === "part" && !hasMorePart) 
+                       
                     }
                   >
                     بارگذاری بیشتر
                   </button>
                 </div>
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="sync">
                   {error && (
                     <motion.div
+                      key={"error"}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -390,6 +426,7 @@ export default function SetResult() {
                   )}
                   {isLoading && (
                     <motion.div
+                      key={"load"}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -422,11 +459,11 @@ export default function SetResult() {
           )}
         </AnimatePresence>
         <div className="sets h-full text-lg shadow-sm flex flex-wrap content-start p-5 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full">
-          <div className="mx-auto h-fit p-3 mt-3 justify-center mb-4 w-fit relative right-[0px] text-lg shadow-sm flex p-1 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
+          <div className="mx-auto gap-2 h-fit p-3 mt-3 justify-center mb-4 w-fit relative right-[0px] text-lg shadow-sm flex p-1 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
             <button
               type="button"
               className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
-              disabled={selectedTabSets === "ven"}
+              disabled={selectedTabSets === "ven" || isAnimatingTabSets} 
               onClick={() => setSelectedTabSets("ven")}
             >
               <span>نمودار ون</span>
@@ -434,11 +471,21 @@ export default function SetResult() {
             <button
               type="button"
               className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
-              disabled={selectedTabSets === "calc"}
+              disabled={selectedTabSets === "calc" || isAnimatingTabSets} 
               onClick={() => setSelectedTabSets("calc")}
             >
               <span>محاسبات</span>
             </button>
+            {Object.keys(setData).length > 1 && (
+              <button
+                type="button"
+                className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
+                disabled={selectedTabSets === "otherInfo" || isAnimatingTabSets}  
+                onClick={() => setSelectedTabSets("otherInfo")}
+              >
+                <span>اطلاعات دیگر</span>
+              </button>
+            )}
           </div>
           <AnimatePresence mode="wait">
             {selectedTabSets === "ven" && (
@@ -447,7 +494,10 @@ export default function SetResult() {
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
+                transition={{ duration: 0.5 }}
                 className="w-full flex flex-col items-center"
+                onAnimationStart={() => setIsAnimatingTabSets(true)}  
+                onAnimationComplete={() => setIsAnimatingTabSets(false)}  
               >
                 {isLoading && (
                   <motion.div
@@ -494,18 +544,26 @@ export default function SetResult() {
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 50 }}
-                className="w-full"
+                transition={{ duration: 0.5 }}
+                className="w-full flex flex-col items-stretch "
+                onAnimationStart={() => setIsAnimatingTabSets(true)}  
+                onAnimationComplete={() => setIsAnimatingTabSets(false)}  
               >
-                <div className="form-calc">
-                  <form onSubmit={(e) => { e.preventDefault(); calc(); }}>
-                    <div className="w-full flex flex-wrap justify-center text-white shadow-sm p-3 rounded-2xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
+                <div className="form-calc   m-3">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      calc();
+                    }}
+                  >
+                    <div className="w-full  flex flex-wrap justify-center text-white shadow-sm p-3 rounded-2xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
                       <input
                         type="text"
                         onChange={(e) => calcCheck(e.target.value)}
                         value={calcTextIn}
                         placeholder="عبارت خود را وارد کنید (مثال: A ∩ B)"
                         className={classNames(
-                          "text-lg transform  math-input text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
+                          "text-lg transform w-full math-input text-white duration-500 p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
                           { "shadow-red-700 focus-visible:shadow-red-700": calcError }
                         )}
                       />
@@ -519,7 +577,7 @@ export default function SetResult() {
                           {calcError}
                         </motion.div>
                       )}
-                      <div className="flex w-full justify-center gap-4 mt-4">
+                      <div className="flex mb-1 w-full justify-center gap-4 mt-4">
                         <button
                           type="button"
                           className="shadow-black/20 w-full rounded-full hover:scale-105 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-lg"
@@ -535,28 +593,70 @@ export default function SetResult() {
                           اشتراک (∩)
                         </button>
                       </div>
+                      <AnimatePresence mode="wait">
+                        {calcTextOut !== "" && (
+                          <motion.div
+                            key={calcTextOut}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.5 }}
+                            className="shadow-black/20 text-center w-full rounded-full my-1 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-lg"
+                          >
+                            <p className="text-lg">نتیجه محاسبه:</p>
+                            <p className="overflow-x-auto text-nowrap text-lg inline-block max-w-[150px]">
+                              {calcTextOut}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       <button
                         type="submit"
-                        className="shadow-black/20 w-full mt-2 rounded-full hover:scale-105 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-lg disabled:blur-xs "
+                        className="shadow-black/20 w-full mt-1 rounded-full hover:scale-105 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-lg disabled:blur-xs"
                         disabled={!!calcError || !calcTextIn}
-                        >
+                      >
                         محاسبه
                       </button>
                     </div>
-                    
-
                   </form>
                 </div>
-                {calcTableData.length > 0 ? (
-                  <DataTable
-                    data={calcTableData}
-                    showDelete={false}
-                    maxHeight={326}
-                    enablePagination={false}
-                  />
-                ) : (
-                  <p className="text-white text-center mt-4">داده‌ای برای نمایش وجود ندارد</p>
-                )}
+                <DataTable
+                  data={calcTableData}
+                  showDelete={false}
+                  maxHeight={206}
+                  enablePagination={false}
+                />
+              </motion.div>
+            )}
+            {selectedTabSets === "otherInfo" && Object.keys(setData).length > 1 && (
+              <motion.div
+                key="otherInfo"
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 50 }}
+                transition={{ duration: 0.5 }}
+                className="w-full flex  flex-col items-stretch"
+                onAnimationStart={() => setIsAnimatingTabSets(true)}  
+                onAnimationComplete={() => setIsAnimatingTabSets(false)}  
+              >
+                <div
+                  className={classNames(
+                    "text-center p-4 rounded-2xl mx-4  bg-blue-950/10 shadow-md shadow-black/20 backdrop-blur-lg",
+                    { "shadow-green-900/50 bg-green-900/40": info.all_sets_chain },
+                    { "shadow-red-900/50 bg-red-900/40": !info.all_sets_chain }
+                  )}
+                >
+                  <p className="flex text-white flex-row-reverse gap-2 justify-center">
+                    <span>{info.all_sets_chain ? "بله" : "خیر"}</span>
+                    <span>آیا همه مجموعه‌ها تشکیل زنجیر می‌دهند؟</span>
+                  </p>
+                </div>
+                <DataTable
+                  data={formatData(info, "info")}
+                  showDelete={false}
+                  maxHeight={206}
+                  enablePagination={false}
+                />
               </motion.div>
             )}
           </AnimatePresence>

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom"; // وارد کردن useNavigate
+import { useNavigate } from "react-router-dom"; 
 import classNames from "classnames";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -20,10 +20,10 @@ export default function SetsForm(props) {
   const [editMode, setEditMode] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [historyShow, setHistoryShow] = useState(false);
-  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(null); // اصلاح نام متغیر
-  const navigate = useNavigate(); // تعریف navigate
+  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(null); 
+  const navigate = useNavigate(); 
   const minHeightForm = isLoggedIn ? "min-h-[241px]" : "min-h-[199px]";
-
+  const [isAnimating, setIsAnimating] = useState(false);
   const historyItems = [
     { sets: [{ name: "S", value: "{S}" }, { name: "F", value: "{S}" }], set_count: "2", date: "04.04.04", index: 0 },
     { sets: [{ name: "S", value: "{S}" }, { name: "F", value: "{S}" }], set_count: "2", date: "04.04.04", index: 1 },
@@ -311,6 +311,8 @@ export default function SetsForm(props) {
       }}
       transition={{ duration: 0.5 }}
       className="relative mx-auto rounded-none lg:rounded-4xl lg:max-w-[1024px] lg:top-30 top-50 shadow-sm shadow-black/20 backdrop-blur-sm backdrop-brightness-200"
+      onAnimationStart={() => setIsAnimating(true)} 
+      onAnimationComplete={() => setIsAnimating(false)} 
     >
       <div className="sets text-lg shadow-sm flex flex-wrap lg:flex-nowrap gap-12 p-5 lg:rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full">
         <div className="sets-form min-h-[326px] order-2 lg:order-1 w-full mx-auto max-w-[768px] lg:max-w-auto lg:w-7/12 h-full">
@@ -328,6 +330,8 @@ export default function SetsForm(props) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.5 }}
+                  onAnimationStart={() => setIsAnimating(true)}
+                  onAnimationComplete={() => setIsAnimating(false)} 
                 >
                   <div className="set-name-form mt-5 gap-4 flex flex-wrap">
                     <div className="input gap-4 w-full flex items-center">
@@ -407,6 +411,7 @@ export default function SetsForm(props) {
                             setShowAi(false);
                           }}
                           className="w-full transform duration-500 shadow bg-blue-950/30 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 shadow-black/40 p-2.5 rounded-lg disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30"
+                          disabled={isAnimating} 
                         >
                           <span className="flex gap-2 justify-center items-center">
                             <span>فعالیت ها</span>
@@ -426,6 +431,7 @@ export default function SetsForm(props) {
                             setHistoryShow(false);
                           }}
                           className="w-full transform duration-500 shadow bg-blue-950/30 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 shadow-black/40 p-2.5 rounded-lg disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30"
+                          disabled={isAnimating}  
                         >
                           <i className="fa-light fa-xmark-large text-xl"></i>
                         </motion.button>
@@ -467,12 +473,13 @@ export default function SetsForm(props) {
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
                           type="button"
-                          className="w-full transform duration-500 shadow bg-blue-950/30 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 shadow-black/40 p-2.5 flex items-center justify-center rounded-lg"
+                          className="w-full transform duration-500 shadow bg-blue-950/30 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 shadow-black/40 p-2.5 rounded-lg disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30"
                           onClick={() => {
                             handleViewChange("nlp");
                             setShowAi(true);
                             setHistoryShow(false);
                           }}
+                          disabled={isAnimating}  
                         >
                           <i className="fa-solid animate-bounce fa-sparkles text-xl"></i>
                         </motion.button>
@@ -484,11 +491,12 @@ export default function SetsForm(props) {
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
                           type="button"
-                          className="w-full transform duration-500 shadow bg-blue-950/30 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 shadow-black/40 p-2.5 flex items-center justify-center rounded-lg"
+                          className="w-full transform duration-500 shadow bg-blue-950/30 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 shadow-black/40 p-2.5 rounded-lg disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30"
                           onClick={() => {
                             handleViewChange("sets");
                             setShowAi(false);
                           }}
+                          disabled={isAnimating}  
                         >
                           <i className="fa-light fa-xmark-large text-xl"></i>
                         </motion.button>
@@ -585,7 +593,7 @@ export default function SetsForm(props) {
                       transition={{ duration: 0.5 }}
                       type="button"
                       className="w-full transform duration-500 mt-3 shadow bg-blue-950/30 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 shadow-black/40 p-2.5 disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30 rounded-lg"
-                      disabled={selectedSet.name === ""}
+                      disabled={selectedSet.name === "" || isAnimating}  
                       onClick={() => {
                         setCurrentSet({ ...selectedSet });
                         setEditMode(true);
@@ -609,6 +617,7 @@ export default function SetsForm(props) {
                     setCurrentSet({ name: "", value: "", index: null });
                     setEditMode(false);
                   }}
+                  disabled={isAnimating}  
                 >
                   لغو ویرایش
                 </motion.button>
@@ -625,6 +634,8 @@ export default function SetsForm(props) {
               exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.5 }}
               className="sets-table w-full mx-auto p-2 lg:order-2 h-100 lg:h-auto max-w-[768px] lg:w-7/12 lg:min-w-7/12 rounded-3xl backdrop-blur-sm backdrop-brightness-200 shadow-sm shadow-black/20"
+              onAnimationStart={() => setIsAnimating(true)}
+              onAnimationComplete={() => setIsAnimating(false)}
             >
               <AnimatePresence mode="wait">
                 {sets.length === 0 ? (
@@ -653,7 +664,6 @@ export default function SetsForm(props) {
                       onSelect={handleSelect}
                       maxHeight={326}
                       enablePagination={false}
-
                     />
                   </motion.div>
                 )}
@@ -668,6 +678,8 @@ export default function SetsForm(props) {
               exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.5 }}
               className="sets-table w-full mx-auto p-2 lg:order-2 h-100 lg:h-auto max-w-[768px] lg:w-7/12 lg:min-w-7/12 rounded-3xl backdrop-blur-sm backdrop-brightness-200 shadow-sm shadow-black/20"
+              onAnimationStart={() => setIsAnimating(true)}
+              onAnimationComplete={() => setIsAnimating(false)}
             >
               <AnimatePresence mode="wait">
                 {historyItems.length === 0 ? (
@@ -713,6 +725,8 @@ export default function SetsForm(props) {
               exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.5 }}
               className="sets-ai w-full min-h-[326px] lg:order-2 mx-auto max-w-[768px] lg:w-7/12 lg:min-w-7/12 rounded-3xl backdrop-blur-sm backdrop-brightness-200 shadow-sm shadow-black/20"
+              onAnimationStart={() => setIsAnimating(true)} 
+              onAnimationComplete={() => setIsAnimating(false)} 
             >
               <form
                 onSubmit={(e) => {
