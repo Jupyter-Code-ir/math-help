@@ -104,6 +104,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     *DEPENDENCIES,
     *MAIN_APPS,
+    'django_apscheduler',
 ]
 
 MIDDLEWARE = [

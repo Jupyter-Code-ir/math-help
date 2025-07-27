@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-import base64
-import time
+import hashlib
+
 from server import settings
 import json
 import uuid
@@ -1230,6 +1230,22 @@ class aiResponse_API_NLP(APIView):
                 {"error": "خطا در پردازش درخواست", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+def normalize(obj):
+    """
+    تودرتو طی می‌کنیم و هر set رو به لیست مرتب‌شده تبدیل می‌کنیم
+    """
+    if isinstance(obj, set):
+        return sorted(normalize(e) for e in obj)
+    elif isinstance(obj, dict):
+        return {k: normalize(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [normalize(e) for e in obj]
+    else:
+        return obj
+def make_hash(d):
+    normalized = normalize(d)
+    js = json.dumps(normalized, sort_keys=True)
+    return hashlib.sha1(js.encode('utf-8')).hexdigest()
 class set_API(APIView):
     def post(self,request):
         data = json.loads(request.body)
@@ -1266,23 +1282,21 @@ class set_API(APIView):
             }
             return Response(rsp)
         elif func == "ven" : 
-
             set_object = SetsAlgorithm(set_dic)
-            ven_fig = set_object.draw_venn() if len(set_dic) < 4 else set_object.draw_venn_4_more()
-            region = set_object.get_region_info()
-            img_id = str(uuid.uuid4())
-            img_name = f"venn_{img_id}.png"
+            h = make_hash(set_dic)
+            img_name = f"venn_{h}.png"
             static_dir = os.path.join(settings.BASE_DIR, "static", "venn")
             os.makedirs(static_dir, exist_ok=True)
             img_path = os.path.join(static_dir, img_name)
-            ven_fig.savefig(img_path, format="png", bbox_inches="tight",transparent=True)
-            plt.close(ven_fig)
+            if not os.path.exists(img_path):
+                ven_fig = (set_object.draw_venn() if len(set_dic) < 4
+                        else set_object.draw_venn_4_more())
+                ven_fig.savefig(img_path, format="png", bbox_inches="tight", transparent=True)
+                plt.close(ven_fig)
             img_url = request.build_absolute_uri(f"/static/venn/{img_name}")
-            rsp = {
-                "ven_url": img_url,
-                "region": region
-            }
-            return Response(rsp)
+            region = set_object.get_region_info()
+            return Response({"ven_url": img_url, "region": region})
+
         elif func == "calc_check":
             set_object = SetsAlgorithm(set_dic)
             text = data.get("text")
