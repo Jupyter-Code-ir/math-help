@@ -82,6 +82,7 @@ export default function SetsForm(props) {
       setSelectedSet({ name: "", value: "", index: null });
     } else {
       setSelectedHistoryIndex(index);
+
     }
   }
 
@@ -128,6 +129,7 @@ export default function SetsForm(props) {
           if (
             "تهی" in data.result ||
             "نامتناهی" in data.result ||
+            "پشتیبانی نشده" in data.result ||
             "اگر از نسخه افلاین استفاده میکنید به دی ان اس متصل شوید اگر در صورتی که از انلاین استفاده میکنید یعنی با محدودیت های نسخه رایگان رو به رو شدیم بعدا تلاش کنید" === data.result
           ) {
             setAibutton(false);
@@ -575,6 +577,7 @@ export default function SetsForm(props) {
                         if (selectedHistoryIndex !== null) {
                           const selectedHistorySets = historyItems[selectedHistoryIndex]?.sets || [];
                           setSets(selectedHistorySets.map((s) => ({ name: s.name, value: s.value })));
+                          setNumSets(sets.length+1)
                           handleViewChange("sets");
                           setHistoryShow(false);
                           handleViewChange("sets");
