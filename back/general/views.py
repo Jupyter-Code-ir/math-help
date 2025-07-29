@@ -1425,7 +1425,6 @@ class LineAPI(APIView):
                     "name": name_eq,
                     "type": eq_type,
                     "input": eq_input,
-                    "info": result[-1]
                 }
 
                 if eq_type == "general":
@@ -1449,7 +1448,7 @@ class LineAPI(APIView):
                         "m": float(m) if m is not None else None,
                         "b": float(b) if b is not None else None
                     })
-
+                print(response_data)
                 return Response(response_data, status=status.HTTP_200_OK)
 
             elif input_type == "نقطه‌ای":
@@ -1472,3 +1471,19 @@ class LineAPI(APIView):
                 return Response(response_data, status=status.HTTP_200_OK)
 
 
+        elif func == "نمودار":
+            equations = data.get("equations", [])
+            if not equations:
+                return Response({"error": "لطفاً معادلات را وارد کنید."}, status=status.HTTP_400_BAD_REQUEST)
+            h = hashlib.sha1(json.dumps(equations, sort_keys=True).encode("utf-8")).hexdigest()
+            img_name = f"line_chart_{h}.png"
+            static_dir = os.path.join(settings.BASE_DIR, "static", "line_chart")
+            os.makedirs(static_dir, exist_ok=True)
+            img_path = os.path.join(static_dir, img_name)
+            if not os.path.exists(img_path):
+                line_fig = calculator.plot(equations)
+                line_fig.savefig(img_path, format="png", bbox_inches="tight", transparent=True)
+                plt.close(line_fig)
+            img_url = request.build_absolute_uri(f"/static/line_chart/{img_name}")
+            return Response({"chart_url": img_url}, status=status.HTTP_200_OK)
+            

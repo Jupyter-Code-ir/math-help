@@ -7,7 +7,6 @@ import { set } from "lodash";
 
 export default function SetResult() {
   const { state } = useLocation();
-  const navigate = useNavigate();
   const setData = state?.data || {};
   const [selectedSetKey, setSelectedSetKey] = useState(
     Object.keys(setData).length > 0 ? Object.keys(setData)[0] : null
@@ -476,6 +475,7 @@ export default function SetResult() {
         </AnimatePresence>
         <div className="sets h-full max-h-[588.9px] text-lg shadow-sm flex flex-wrap content-start  rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 w-full">
           <div className="mx-auto gap-2 h-fit p-3 m-5 justify-center mb-4 w-fit relative right-[0px] text-lg shadow-sm flex p-1 rounded-4xl shadow-black/20 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200">
+            {Object.keys(setData).length > 1 && (
             <button
               type="button"
               className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
@@ -484,6 +484,7 @@ export default function SetResult() {
             >
               <span>نمودار ون</span>
             </button>
+            )}
             <button
               type="button"
               className="shadow-black/20 transition-all duration-500 text-white p-2 px-4 bg-blue-950/20 backdrop-blur-sm backdrop-brightness-200 rounded-full disabled:bg-blue-950/50 disabled:scale-90"
@@ -504,7 +505,7 @@ export default function SetResult() {
             )}
           </div>
           <AnimatePresence mode="wait">
-            {selectedTabSets === "ven" && (
+            {selectedTabSets === "ven" &&Object.keys(setData).length>1&& (
               <motion.div
                 key="ven"
                 initial={{ opacity: 0, x: -50 }}

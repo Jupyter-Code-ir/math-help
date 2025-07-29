@@ -5,9 +5,10 @@ import Navbar from "./assets/components/Navbar.jsx";
 import SetsForm from "./assets/components/sets-form.jsx";
 import SetResult from "./assets/components/SetResult.jsx";
 import LineForm from "./assets/components/eqe-form.jsx";
+import LineResult  from "./assets/components/lineResult.jsx";
+
 import "./App.css";
 import "./assets/css/all.css";
-
 export default function App() {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -31,6 +32,8 @@ export default function App() {
         <Routes location={location} key={location.pathname}>
           <Route path="/sets" element={<SetsForm isLoggedIn={isLoggedIn}   />} />
           <Route path="/sets/result/:id" element={<SetResult />} /> 
+          <Route path="/eqe/result/:id" element={<LineResult />} /> 
+
           <Route path="/eq" element={<LineForm isLoggedIn={isLoggedIn}/>}/>
         </Routes>
       </AnimatePresence>

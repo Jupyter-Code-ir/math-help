@@ -3,8 +3,29 @@ import classNames from "classnames";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import DataTable from "./table";
-import { result } from "lodash";
 
+const superscriptMap = {
+  '0': '⁰',
+  '1': '¹',
+  '2': '²',
+  '3': '³',
+  '4': '⁴',
+  '5': '⁵',
+  '6': '⁶',
+  '7': '⁷',
+  '8': '⁸',
+  '9': '⁹',
+};
+
+const convertToSuperscriptBackend = (value) => {
+  return value.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (match) => {
+    const num = Object.keys(superscriptMap).find(key => superscriptMap[key] === match);
+    return `^${num}`;
+  });
+};
+const formatSuperscripts = (value) => {
+  return value.replace(/\^(\d)/g, (_, digit) => superscriptMap[digit] || `^${digit}`);
+};
 export default function LineForm(props) {
   const isLoggedIn = props.isLoggedIn;
   const [lines, setLines] = useState([]);
@@ -23,6 +44,7 @@ export default function LineForm(props) {
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(null);
   const [pointList, setPointList] = useState({ p1: "", p2: "", p3: "", p4: "" });
   const [inputType, setInputType] = useState("معادله");
+  const [isPPressed, setIsPPressed] = useState(false);
   const navigate = useNavigate();
   const minHeightForm = isLoggedIn ? "min-h-[241px]" : "min-h-[199px]";
   const [isAnimating, setIsAnimating] = useState(false);
@@ -32,6 +54,30 @@ export default function LineForm(props) {
     { lines: [{ name: "S", value: "x^2+y=1" }, { name: "F", value: "x^2+y=1" }], lines_count: "2", date: "04.04.04", index: 0 },
   ];
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key.toLowerCase() === "p") {
+        setIsPPressed(true);
+        setMembError("")
+      }
+    };
+    const handleKeyUp = (e) => {
+      if (e.key.toLowerCase() === "p") {
+        setIsPPressed(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  function send_lines() {
+    const resultId = Date.now().toString();
+    navigate(`/eqe/result/${resultId}`, { state: { data: lines } });
+  }
   useEffect(() => {
     const timeout = setTimeout(() => setIsFirstLoad(false), 50);
     return () => clearTimeout(timeout);
@@ -71,7 +117,7 @@ export default function LineForm(props) {
     };
 
     if (inputType === "معادله") {
-      data.eq_input = currentLine.value.replace("X", "x").replace("Y", "y").replace(" ", "");
+      data.eq_input = convertToSuperscriptBackend(currentLine.value.replace("X", "x").replace("Y", "y").replace(" ", ""));
     } else if (inputType === "نقطه‌ای") {
       data.pt1_x = pointList.p1;
       data.pt1_y = pointList.p2;
@@ -99,9 +145,9 @@ export default function LineForm(props) {
         name: result.name,
         value: result.input,
         type: result.type,
-        info: result.info,
         ...result,
       };
+      console.log(processedLine)
     } catch (error) {
       setMembError("خطا در ارتباط با سرور");
       return;
@@ -114,7 +160,6 @@ export default function LineForm(props) {
       setLines([...lines, processedLine]);
       setNumLines(numLines + 1);
     }
-
     setCurrentLine({ name: "", value: "", index: null });
     setPointList({ p1: "", p2: "", p3: "", p4: "" });
     setMembError("");
@@ -193,15 +238,12 @@ export default function LineForm(props) {
         }
       })
       .catch((err) => {
-        console.error(err);
         setAiOutput("⛔ خطا در اتصال به سرور هوش مصنوعی");
         setAibutton(false);
       });
   }
 
-  function send_lines() {
-    navigate(`/lines/result/${resultId}`, { state: { lines } });
-  }
+
 
   function nameErrorCheck(v) {
     if (lines.some((s) => s.name.toUpperCase() === v.toUpperCase()) && !editMode) {
@@ -226,7 +268,7 @@ export default function LineForm(props) {
         body: JSON.stringify({
           func: "check_eqe",
           input_type: "معادله",
-          eq_input: text,
+          eq_input: convertToSuperscriptBackend(text),
           name_eq: currentLine.name
         }),
       });
@@ -285,6 +327,8 @@ export default function LineForm(props) {
     pointCheck();
   }, [pointList.p1, pointList.p2, pointList.p3, pointList.p4]);
 
+  const allowedCharacters = /^[xy0-9+\-*/=()]$/;
+
   return (
     <motion.div
       initial={{
@@ -317,7 +361,7 @@ export default function LineForm(props) {
           >
             <button
               className={classNames(
-                "w-1/2 p-2 rounded-lg transition-all duration-300  hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50  disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30",
+                "w-1/2 p-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30",
                 inputType === "معادله" ? "bg-blue-950/50 text-white" : "bg-blue-950/30 text-white/70",
               )}
               onClick={() => handleTabChange("معادله")}
@@ -327,7 +371,7 @@ export default function LineForm(props) {
             </button>
             <button
               className={classNames(
-                "w-1/2 p-2 rounded-lg transition-all duration-300  hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50  disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30",
+                "w-1/2 p-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-102 text-white hover:bg-blue-950/50 disabled:blur-[1.5px] disabled:hover:shadow disabled:hover:scale-100 disabled:hover:bg-blue-950/30",
                 inputType === "نقطه‌ای" ? "bg-blue-950/50 text-white" : "bg-blue-950/30 text-white/70",
               )}
               onClick={() => handleTabChange("نقطه‌ای")}
@@ -348,7 +392,6 @@ export default function LineForm(props) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.5 }}
-
               >
                 <div className="set-name-form mt-5 gap-4 flex flex-wrap">
                   <div className="input gap-4 w-full flex items-center">
@@ -385,127 +428,141 @@ export default function LineForm(props) {
                   </span>
                 </div>
                 <AnimatePresence mode="wait">
-
-                {inputType === "معادله" ? (
-                  <motion.div
-                    key={"eq"}
-                    initial={isFirstLoad ? false : { borderRadius: 32, opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.5 }}
-                    onAnimationStart={() => setIsAnimating(true)}
-                    onAnimationComplete={() => setIsAnimating(false)}
-                   className="set-memb-form gap-4 flex flex-wrap">
-                    <div className="input gap-4 w-full flex items-center">
-                      <span className="w-1/2 text-white text-shadow-sm text-shadow-black/40">
-                        معادله خط {editMode && currentLine.index !== null ? currentLine.index + 1 : numLines} :
-                      </span>
-                      <input
-                        type="text"
-                        value={currentLine.value}
-                        placeholder={`معادله خط ${editMode && currentLine.index !== null ? currentLine.index + 1 : numLines}`}
-                        onChange={(e) => {
-                          const newValue = e.target.value;
-                          setCurrentLine({ ...currentLine, value: newValue });
-                          eqeCheck(newValue);
-                        }}
+                  {inputType === "معادله" ? (
+                    <motion.div
+                      key={"eq"}
+                      initial={isFirstLoad ? false : { borderRadius: 32, opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.5 }}
+                      onAnimationStart={() => setIsAnimating(true)}
+                      onAnimationComplete={() => setIsAnimating(false)}
+                      className="set-memb-form gap-4 flex flex-wrap"
+                    >
+                      <div className="input gap-4 w-full flex items-center">
+                        <span className="w-1/2 text-white text-shadow-sm text-shadow-black/40">
+                          معادله خط {editMode && currentLine.index !== null ? currentLine.index + 1 : numLines} :
+                        </span>
+                        <input
+                          type="text"
+                          value={currentLine.value}
+                          placeholder={`معادله خط ${editMode && currentLine.index !== null ? currentLine.index + 1 : numLines}`}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setCurrentLine({ ...currentLine, value: newValue });
+                            eqeCheck(newValue);
+                          }}
+                          onKeyDown={(e) => {
+                            if (isPPressed && /^[0-9]$/.test(e.key)) {
+                              e.preventDefault();
+                              const superscriptChar = superscriptMap[e.key];
+                              setCurrentLine({ ...currentLine, value: currentLine.value + superscriptChar });
+                            }
+                            else if (!allowedCharacters.test(e.key) && e.key !== "Backspace" && e.key !== "Delete" && e.key !== "ArrowLeft" && e.key !== "ArrowRight"&& e.key !== "Shift") {
+                              e.preventDefault(); 
+                              setMembError("فقط کاراکترهای x, y, اعداد (با P برای توان)، و + - * / = ( ) مجاز هستند");
+                            } else {
+                              setMembError(""); 
+                            }
+                          }}
+                          className={classNames(
+                            "text-lg math-input transform w-full duration-500 text-white p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
+                            { "shadow-red-700 focus-visible:shadow-red-700": membError }
+                          )}
+                        />
+                      </div>
+                      <span
                         className={classNames(
-                          "text-lg math-input transform w-full duration-500 text-white p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
-                          { "shadow-red-700 focus-visible:shadow-red-700": membError }
+                          "input-error text-red-700 text-shadow-sm text-shadow-black/20 overflow-auto w-full transition collapse opacity-0 duration-500",
+                          { "visible mb-4 opacity-100": membError }
                         )}
-                      />
-                    </div>
-                    <span
-                      className={classNames(
-                        "input-error text-red-700 text-shadow-sm text-shadow-black/20 overflow-auto w-full transition collapse opacity-0 duration-500",
-                        { "visible mb-4 opacity-100": membError }
-                      )}
+                      >
+                        {membError}
+                      </span>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={"point"}
+                      initial={isFirstLoad ? false : { borderRadius: 32, opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.5 }}
+                      onAnimationStart={() => setIsAnimating(true)}
+                      onAnimationComplete={() => setIsAnimating(false)}
+                      className="set-point-form gap-4 flex flex-wrap"
                     >
-                      {membError}
-                    </span>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key={"point"}
-                    initial={isFirstLoad ? false : { borderRadius: 32, opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ borderRadius: 32, opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.5 }}
-                    onAnimationStart={() => setIsAnimating(true)}
-                    onAnimationComplete={() => setIsAnimating(false)}
-                    className="set-point-form gap-4 flex flex-wrap">
-                    <div className="points gap-4 w-full flex flex-wrap">
-                      <div className="point-pair flex gap-2 w-full">
-                        <div className="w-1/2">
-                          <input
-                            type="number"
-                            value={pointList.p2}
-                            placeholder="x₁"
-                            onChange={(e) => {
-                              setPointList({ ...pointList, p2: e.target.value });
-                            }}
-                            className={classNames(
-                              "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
-                              { "shadow-red-700 focus-visible:shadow-red-700": membError }
-                            )}
-                          />
+                      <div className="points gap-4 w-full flex flex-wrap">
+                        <div className="point-pair flex gap-2 w-full">
+                          <div className="w-1/2">
+                            <input
+                              type="number"
+                              value={pointList.p2}
+                              placeholder="x₁"
+                              onChange={(e) => {
+                                setPointList({ ...pointList, p2: e.target.value });
+                              }}
+                              className={classNames(
+                                "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
+                                { "shadow-red-700 focus-visible:shadow-red-700": membError }
+                              )}
+                            />
+                          </div>
+                          <div className="w-1/2">
+                            <input
+                              type="number"
+                              value={pointList.p1}
+                              placeholder="y₁"
+                              onChange={(e) => {
+                                setPointList({ ...pointList, p1: e.target.value });
+                              }}
+                              className={classNames(
+                                "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
+                                { "shadow-red-700 focus-visible:shadow-red-700": membError }
+                              )}
+                            />
+                          </div>
                         </div>
-                        <div className="w-1/2">
-                          <input
-                            type="number"
-                            value={pointList.p1}
-                            placeholder="y₁"
-                            onChange={(e) => {
-                              setPointList({ ...pointList, p1: e.target.value });
-                            }}
-                            className={classNames(
-                              "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
-                              { "shadow-red-700 focus-visible:shadow-red-700": membError }
-                            )}
-                          />
+                        <div className="point-pair flex gap-2 w-full">
+                          <div className="w-1/2">
+                            <input
+                              type="number"
+                              value={pointList.p4}
+                              placeholder="x₂"
+                              onChange={(e) => {
+                                setPointList({ ...pointList, p4: e.target.value });
+                              }}
+                              className={classNames(
+                                "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
+                                { "shadow-red-700 focus-visible:shadow-red-700": membError }
+                              )}
+                            />
+                          </div>
+                          <div className="w-1/2">
+                            <input
+                              type="number"
+                              value={pointList.p3}
+                              placeholder="y₂"
+                              onChange={(e) => {
+                                setPointList({ ...pointList, p3: e.target.value });
+                              }}
+                              className={classNames(
+                                "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
+                                { "shadow-red-700 focus-visible:shadow-red-700": membError }
+                              )}
+                            />
+                          </div>
                         </div>
                       </div>
-                      <div className="point-pair flex gap-2 w-full">
-                        <div className="w-1/2">
-                          <input
-                            type="number"
-                            value={pointList.p4}
-                            placeholder="x₂"
-                            onChange={(e) => {
-                              setPointList({ ...pointList, p4: e.target.value });
-                            }}
-                            className={classNames(
-                              "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
-                              { "shadow-red-700 focus-visible:shadow-red-700": membError }
-                            )}
-                          />
-                        </div>
-                        <div className="w-1/2">
-                          <input
-                            type="number"
-                            value={pointList.p3}
-                            placeholder="y₂"
-                            onChange={(e) => {
-                              setPointList({ ...pointList, p3: e.target.value });
-                            }}
-                            className={classNames(
-                              "text-lg transform text-white duration-500 w-full p-2 shadow-sm shadow-black/30 rounded-lg focus-visible:shadow focus-visible:shadow-lg focus-visible:shadow-black/40 focus-visible:scale-102 focus-visible:outline-0",
-                              { "shadow-red-700 focus-visible:shadow-red-700": membError }
-                            )}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <span
-                      className={classNames(
-                        "input-error text-red-700 text-shadow-sm text-shadow-black/20 overflow-auto w-full transition collapse opacity-0 duration-500",
-                       { "visible mb-4 opacity-100": membError }
-                      )}
-                    >
-                      {membError}
-                    </span>
-                  </motion.div >
-                )}
+                      <span
+                        className={classNames(
+                          "input-error text-red-700 text-shadow-sm text-shadow-black/20 overflow-auto w-full transition collapse opacity-0 duration-500",
+                          { "visible mb-4 opacity-100": membError }
+                        )}
+                      >
+                        {membError}
+                      </span>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
                 <div className="flex gap-4">
                   <AnimatePresence mode="wait">
@@ -755,8 +812,10 @@ export default function LineForm(props) {
                     transition={{ duration: 0.5 }}
                   >
                     <DataTable
-                      data={lines.map((item) => ({ "نام خط": item.name.toUpperCase(), "معادله خط": item.value }))}
-                      showDelete={true}
+                      data={lines.map((item) => ({
+                      "نام خط": item.name.toUpperCase(),
+                      "معادله خط": formatSuperscripts(item.value)
+                    }))}
                       onDelete={handleDelete}
                       onSelect={handleSelect}
                       maxHeight={326}
@@ -801,7 +860,7 @@ export default function LineForm(props) {
                     <DataTable
                       data={historyItems.map((item) => ({
                         "خطوط": item.lines.map((dict) => dict.name),
-                        "تعداد خطوط": item.lines_count,
+                        "تعداد خطوط": formatSuperscripts(item.lines_count),
                         تاریخ: item.date,
                       }))}
                       showDelete={false}
