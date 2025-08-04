@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+/venv
+*.sqlite3
+متن.txt
 
 # Editor directories and files
 .vscode/*

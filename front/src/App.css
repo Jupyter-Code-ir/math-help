@@ -46,7 +46,7 @@
     font-style: normal;
 }
 *:not(html):not(body)::-webkit-scrollbar{
-  width: 0.5vw;
+  width: 15px;
   height: 15px;
 
 }
@@ -72,18 +72,16 @@
     --tw-backdrop-saturate: saturate(110%);
     --tw-backdrop-drop-shadow: drop-shadow(-8px -10px 46px #0000005f);
     --tw-backdrop-brightness: brightness(1.2);
-
 }
 html, body {
     margin: 0;
     padding: 0;
-    overflow-x: hidden; /* جلوگیری از اسکرول افقی */
+    overflow-x: hidden; 
     direction: rtl;
     font-family: yekan-bakh;
     font-weight: 300;
     font-size: 14px;
     min-height: 100vh;
-    height: 10000Vh;
 
 }
 

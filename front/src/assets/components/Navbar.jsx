@@ -22,25 +22,16 @@ const historyItems = [
   { title: "مجموعه", description: "1,2,3" },
 ];
 
-export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [username, setUsername] = useState("محمدمهدی");
+export default function Navbar(props) {
+  const isLoggedIn = props.isLoggedIn;
+  const username=props.username;
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const historyMenuRef = useRef(null);
   const userMenuRef = useRef(null); 
 
-  useEffect(() => {
-    const token = localStorage.getItem("access");
-    if (token) {
-      setIsLoggedIn(true);
-      setUsername("محمدمهدی");
-    } else {
-      setIsLoggedIn(false);
-      setUsername("");
-    }
-  }, []);
+
 
   useEffect(() => {
     const checkMobile = debounce(() => {
