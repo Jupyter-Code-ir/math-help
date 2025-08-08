@@ -52,13 +52,14 @@ export default function CustomSelect({ options = [], value, onChange, placeholde
   }, []);
 
   return (
-    <div className={`relative text-white ${className}`}>
+    <div className={`relative  text-white ${className}`}>
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="w-fit text-nowrap hover:scale-110  text-center p-2 px-4 rounded-full bg-blue-950/40 backdrop-blur-lg  shadow-md transition-all duration-300"
       >
         {value ? value.label : placeholder}
+        {console.log( value.label )}
       </button>
 
       {createPortal(

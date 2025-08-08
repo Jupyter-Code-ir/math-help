@@ -3,10 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 import hashlib
-
+import requests
 from server import settings
 import json
-import uuid
 import os
 import matplotlib.pyplot as plt
 from matplotlib_venn import venn2, venn3
@@ -1097,7 +1096,7 @@ class SetsAlgorithm:
 class init_chat_bot():
     def __init__(self,other_system_message=None):
         #  این ای پی ای رایگان بوده و به همین دلیل در گیت هاب پوش شده
-        configure(api_key="AIzaSyAdKuPHksFTef8Rl1PkFF6jUvgmk4sqiTM")
+        configure(api_key="AIzaSyBUrLO1Oc-O1RMgFiNYmxiYkA3f23EZeHA")
         if other_system_message:
             self.system_message=other_system_message
         else:       
@@ -1149,6 +1148,12 @@ class init_chat_bot():
         if   not self.chat_on :
             self.chat = self.model.start_chat(history={"role": "user", "parts": [{"text": self.system_message}]})
             self.chat_on=True
+    def add_history(self, history):
+        history_list=[]
+        for dic in history:
+            history_list.append({"role": dic["sender"], "parts": [{"text": dic["text"]}]})
+        self.chat.history.extend(history_list)
+        self.chat.history.append({"role": "user", "parts": [{"text": self.system_message}]})
     def send_message(self, user_message):
         try:
             response = self.chat.send_message(user_message)
@@ -1161,7 +1166,123 @@ class init_chat_bot():
 # --------------------------------------------------
 #  کنترل هوش موصنوعی زبان طبیعی  علاوه بر کلاس بالا با این کلاس نیز صورت میگیرد
 # --------------------------------------------------
+class aiResponse_APi_chatBot(APIView):
+    def is_line_math(self, line):
+        line = line.strip()
+        if not line:
+            return False
+        if re.search(r'(=|\\frac|\\int|\\sum|\^|_)', line):
+            return True
+        if len(line.split()) == 1 and re.match(r'^[A-Za-z0-9+\-*/^_]+$', line):
+            return True
+        return False
 
+    def split_latex_and_text(self, text):
+        pattern = r'(\\begin\{[^\}]+\}.*?\\end\{[^\}]+\}|(?:\$\$(?:[^$]|\$(?!\$))*?\$\$|\$(?:[^$]|\$(?!\$))*?\$|\\\((?:[^\\\)]|\\(?!\)))*?\\\)|\\\[(?:[^\\\]]|\\(?!\]))*?\\\]))'
+        parts = []
+        last_end = 0
+
+        if not text.strip():
+            return [(text, False)]
+
+        for match in re.finditer(pattern, text, re.DOTALL):
+            start, end = match.span()
+            if last_end < start:
+                parts.append((text[last_end:start], False))
+            latex_content = match.group(0)
+            if not latex_content.startswith(r'\begin'):
+                if latex_content.startswith('$$') and latex_content.endswith('$$'):
+                    latex_content = latex_content[2:-2]
+                elif latex_content.startswith('$') and latex_content.endswith('$'):
+                    latex_content = latex_content[1:-1]
+                elif latex_content.startswith(r'\(') and latex_content.endswith(r'\)'):
+                    latex_content = latex_content[2:-2]
+                elif latex_content.startswith(r'\[') and latex_content.endswith(r'\]'):
+                    latex_content = latex_content[2:-2]
+            parts.append((latex_content, True))
+            last_end = end
+
+        if last_end < len(text):
+            parts.append((text[last_end:], False))
+        
+        if not parts:
+            parts.append((text, False))
+
+        new_parts = []
+        for part, is_latex in parts:
+            if not is_latex:
+                lines = part.splitlines(keepends=True)
+                for line in lines:
+                    line = line.strip()
+                    if line and self.is_line_math(line):
+                        new_parts.append((line, True))
+                    elif line:
+                        new_parts.append((line, False))
+            else:
+                new_parts.append((part, True))
+
+        return new_parts
+
+    def process_response(self, response_text):
+        lines = response_text.splitlines()
+        processed_response = {}
+        index = 1
+
+        for line in lines:
+            if not line.strip():
+                continue
+            parts = self.split_latex_and_text(line)
+            if parts is None:
+                parts = [(line, False)]
+            for j, (content, is_latex) in enumerate(parts):
+                content = content.strip()
+                if not content:
+                    continue
+                key = f"بند_{index}"
+                if len(parts) > 1:
+                    key = f"بند_{index}_{j+1}"
+                processed_response[key] = {
+                    "متن": content,
+                    "لاتک": is_latex
+                }
+                index += 1 if len(parts) == 1 else 1
+
+        return processed_response
+
+    def post(self, request):
+        data = request.data
+        func = data.get("func")
+        if func != "message":
+            return Response(
+                {"detail": "func نامعتبر است."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user_message = data.get("message", "")
+        model = data.get("model", "gemini-2.0-flash-thinking-exp-01-21")
+        temp = data.get("temp", 0.6)
+        chat_history = data.get("chatHistory", [])
+
+        payload = {
+            "message": user_message,
+            "model": model,
+            "temp": temp,
+            "chatHistory": chat_history
+        }
+        print(payload)
+        try:
+            hf_res = requests.post(settings.HF_PROXY_URL, json=payload, timeout=30)
+            hf_res.raise_for_status()
+            hf_data = hf_res.json()
+            raw_response = hf_data.get("response", "")
+        except requests.RequestException as e:
+            return Response(
+                {"detail": f"خطای اتصال به پراکسی: {str(e)}"},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        processed = self.process_response(raw_response)
+        return Response({"respon": processed})
 class NLP_with_ai():
     def __init__(self,section):
         if section=="set":
@@ -1221,7 +1342,6 @@ class aiResponse_API_NLP(APIView):
                 {"error": "پیام یا بخش ارسال نشده است"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         try:
             result = NLP_with_ai(section.lower()).send_prompt(message)
             return Response({"result": result}, status=status.HTTP_200_OK)
@@ -1229,7 +1349,7 @@ class aiResponse_API_NLP(APIView):
             return Response(
                 {"error": "خطا در پردازش درخواست", "details": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            )            
 def normalize(obj):
     """
     تودرتو طی می‌کنیم و هر set رو به لیست مرتب‌شده تبدیل می‌کنیم
@@ -1332,3 +1452,157 @@ class set_API(APIView):
             return Response(rsp)
 
 
+class LineAPI(APIView):
+    def post(self, request):
+        data = request.data
+        func=data.get("func")
+        calculator = LineAlgorithm()
+        input_type = data.get("input_type","")
+        eq_input = data.get("eq_input", "")
+        pt1_x = data.get("pt1_x","")
+        pt1_y = data.get("pt1_y","")
+        pt2_x = data.get("pt2_x","")
+        pt2_y = data.get("pt2_y","")
+        if func=="check_eqe":
+
+            try:
+                if input_type == "معادله":
+                    eq_input = eq_input.replace("X", "x").replace("Y", "y").replace(" ", "")
+                    if not eq_input:
+                        return Response(
+                            {"error": "لطفاً معادله را وارد کنید."},
+                        )
+                    if "x" not in eq_input and "y" not in eq_input:
+                        return Response(
+                            {"error": "معادله وارد شده باید حداقل شامل یکی از حروف x یا y باشد."},
+                        )
+
+                    if eq_input.count("=") > 1:
+                        return Response(
+                            {"error": "نمی‌توانید بیش از یک علامت مساوی در معادله استفاده کنید."},
+                        )
+
+                    term_pattern = r'-?\(?(?:\d{2}|\d*(?:\.\d+)?)\)?[xy]?(?:\^[0-9]+)?'
+                    operator_pattern = r'[\+\-\*/\^]'
+                    expression_pattern = fr'^{term_pattern}({operator_pattern}{term_pattern})*$'
+
+                    if "=" in eq_input:
+                        left, right = eq_input.split('=')
+                        if not (re.fullmatch(expression_pattern, left) and re.fullmatch(expression_pattern, right)):
+                            return Response(
+                                {"error": "عبارت وارد شده یک معادله معتبر نیست."},
+                            )
+                    else:
+                        if not re.fullmatch(expression_pattern, eq_input):
+                            return Response(
+                                {"error": "عبارت وارد شده یک معادله معتبر نیست."},
+                            )
+
+                    result = calculator.parse_equation(eq_input)
+                    eq_type = result[0]
+
+                    if eq_type == "error":
+                        return Response(
+                    {"error": result[-1] if  "invalid" not in result[-1] else None},
+                        )
+                elif input_type == "نقطه‌ای":
+                    if not all([pt1_x, pt1_y, pt2_x, pt2_y]):
+                        return Response(
+                            {"error": "لطفاً مقدارهای x و y هر دو نقطه را وارد کنید."},
+                        )
+
+                    try:
+                        point1 = (float(pt1_x), float(pt1_y))
+                        point2 = (float(pt2_x), float(pt2_y))
+                        if any(abs(v) > 1e10 for v in [point1[0], point1[1], point2[0], point2[1]]):
+                            return Response(
+                                {"error": "مقادیر نقاط بیش از حد بزرگ هستند."},
+                            )
+                    except ValueError:
+                        return Response(
+                            {"error": "مقادیر نقاط باید عددی باشند."},
+                        )
+
+                    try:
+                        m_val, b_val = calculator.calculate_from_points(point1, point2)
+                    except Exception as e:
+                        return Response(
+                            {"error": str(e) if "invalid syntax " not in str(e) else ""},
+
+                        )
+            except Exception as e:
+                return Response(
+                {"error": str(e) if "invalid syntax " not in str(e) else ""},
+                )
+            return Response(
+                {""}
+                )
+        elif "prosses_eqe"==func:
+            name_eq = data.get("name_eq")
+            if input_type=="معادله":
+                result = calculator.parse_equation(eq_input)
+                eq_type = result[0]
+                response_data = {
+                    "name": name_eq,
+                    "type": eq_type,
+                    "input": eq_input,
+                }
+
+                if eq_type == "general":
+                    _, expr, a, b_coef, c, info = result
+                    response_data.update({
+                        "a": float(a),
+                        "b_coef": float(b_coef),
+                        "c": float(c)
+                    })
+                elif eq_type == "quadratic":
+                    _, sol, a, b_coef, c, delta, info = result
+                    response_data.update({
+                        "a": float(a),
+                        "b_coef": float(b_coef),
+                        "c": float(c),
+                        "delta": float(delta)
+                    })
+                else:
+                    _, sol, m, b, info = result
+                    response_data.update({
+                        "m": float(m) if m is not None else None,
+                        "b": float(b) if b is not None else None
+                    })
+                return Response(response_data, status=status.HTTP_200_OK)
+
+            elif input_type == "نقطه‌ای":
+                point1 = (float(pt1_x), float(pt1_y))
+                point2 = (float(pt2_x), float(pt2_y))
+                m_val, b_val = calculator.calculate_from_points(point1, point2)
+
+                distance = abs(b_val) / np.sqrt(m_val**2 + 1)
+                computed_form = f"y = {m_val:.2f}x + {b_val:.2f}"
+                info = f"شیب = {m_val:.2f}، عرض = {b_val:.2f}، فاصله = {distance:.2f}"
+
+                response_data = {
+                    "name": name_eq,
+                    "type": "linear",
+                    "m": float(m_val),
+                    "b": float(b_val),
+                    "input": computed_form,
+                    "info": info
+                }
+                return Response(response_data, status=status.HTTP_200_OK)
+
+
+        elif func == "نمودار":
+            equations = data.get("equations", [])
+            if not equations:
+                return Response({"error": "لطفاً معادلات را وارد کنید."}, status=status.HTTP_400_BAD_REQUEST)
+            h = hashlib.sha1(json.dumps(equations, sort_keys=True).encode("utf-8")).hexdigest()
+            img_name = f"line_chart_{h}.png"
+            static_dir = os.path.join(settings.BASE_DIR, "static", "line_chart")
+            os.makedirs(static_dir, exist_ok=True)
+            img_path = os.path.join(static_dir, img_name)
+            if not os.path.exists(img_path):
+                line_fig = calculator.plot(equations)
+                line_fig.savefig(img_path, format="png", bbox_inches="tight", transparent=True)
+                plt.close(line_fig)
+            img_url = request.build_absolute_uri(f"/static/line_chart/{img_name}")
+            return Response({"chart_url": img_url}, status=status.HTTP_200_OK)

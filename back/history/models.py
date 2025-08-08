@@ -2,6 +2,7 @@ from django.db import models
 from persons.models import CustomUser
 # Create your models here.
 class setActivities(models.Model):
+    set_name = models.CharField(max_length=1)
     set = models.JSONField()
     set_count = models.PositiveIntegerField()
     user = models.ForeignKey(
@@ -14,6 +15,7 @@ class setActivities(models.Model):
         return self.created_at
 
 class lineActivities(models.Model):
+    line_name = models.CharField(max_length=1)
     line = models.JSONField()
     line_count = models.PositiveIntegerField()
     user = models.ForeignKey(

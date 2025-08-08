@@ -124,7 +124,7 @@ MIDDLEWARE = [
 #                                     DEFINITION                                    |
 #                                                                                   |
 # ----------------------------------------------------------------------------------+
-
+HF_PROXY_URL = "https://jupitercode-geminiproxy.hf.space"
 
 ROOT_URLCONF = "server.urls"
 

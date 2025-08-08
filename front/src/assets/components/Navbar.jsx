@@ -43,15 +43,14 @@ export default function Navbar(props) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
     const handleScroll = debounce(() => {
-      setIsScrolled(window.scrollY > 10);
+      const scrollTop =  document.body.scrollTop;
+      setIsScrolled(scrollTop > 1);
     }, 100);
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    handleScroll();
+    document.body.addEventListener("scroll", handleScroll);
   }, []);
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -236,7 +235,7 @@ export default function Navbar(props) {
         <div className="mb-2 w-full lg:w-7/12 lg:mb-0 gap-4 justify-evenly nav-sec order-1 text-shadow-sm text-shadow-black/50 flex items-center size-6">
           <NavItem to="/eq">مختصات</NavItem>
           <NavItem to="/sets">مجموعه</NavItem>
-          <NavItem to="/ai">ai</NavItem>
+          <NavItem to="/ai/chat">ai</NavItem>
         </div>
         <div className="w-2/12 order-0 logo hidden lg:inline-block">
           <a href="#" className="text-shadow-lg text-shadow-black text-center">
