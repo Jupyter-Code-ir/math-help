@@ -5,9 +5,6 @@ import { AnimatePresence } from "framer-motion";
 import 'katex/dist/katex.min.css';
 import Navbar from "./assets/components/Navbar.jsx";
 import SetsForm from "./assets/components/sets-form.jsx";
-<<<<<<< HEAD
-import UserPanel from "./assets/components/user_panel.jsx"; // وارد کردن کامپوننت جدید
-=======
 import SetResult from "./assets/components/SetResult.jsx";
 import LineForm from "./assets/components/eqe-form.jsx";
 import LineResult  from "./assets/components/lineResult.jsx";
@@ -39,10 +36,7 @@ export default function App() {
 
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-<<<<<<< HEAD
-          <Route path="/sets" element={<SetsForm />} />
-          <Route path="/user" element={<UserPanel />} /> {/* مسیر جدید */}
-=======
+
           <Route path="/sets" element={<SetsForm isLoggedIn={isLoggedIn}   />} />
           <Route path="/sets/result/:id" element={<SetResult />} /> 
           <Route path="/eqe/result/:id" element={<LineResult />} /> 
