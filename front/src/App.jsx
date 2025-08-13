@@ -13,23 +13,9 @@ import Chatbot from "./assets/components/AiPage.jsx"
 import UserPanel from "./assets/components/UserPanel.jsx";
 import "./App.css";
 import "./assets/css/all.css";
-export default function App() {
-  const location = useLocation();
+import { createContext } from "react";
+  export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName,setUsername] = useState("کاربر");
-
-
-  useEffect(() => {
-    const token = localStorage.getItem("access");
-    if (token) {
-      setIsLoggedIn(true);
-      setUsername("محمدمهدی");
-    } else {
-      setIsLoggedIn(false);
-      setUsername("");
-    }
-  }, []);
-
   return (
     <>
       <Navbar isLoggedIn={isLoggedIn} username={userName}  />

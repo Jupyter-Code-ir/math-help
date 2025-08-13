@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import classNames from "classnames";
-
+import {fetchUserInfo} from "../../App"
 export default function Login() {
+  
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [repeatPassword, setRepeatPassword] = useState(""); // فیلد تکرار رمز
+  const [repeatPassword, setRepeatPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
