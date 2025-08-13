@@ -1,6 +1,6 @@
 
 import { Routes, Route, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useContext } from "react";
 import { AnimatePresence } from "framer-motion";
 import 'katex/dist/katex.min.css';
 import Navbar from "./assets/components/Navbar.jsx";
@@ -13,12 +13,15 @@ import Chatbot from "./assets/components/AiPage.jsx"
 import UserPanel from "./assets/components/UserPanel.jsx";
 import "./App.css";
 import "./assets/css/all.css";
-import { createContext } from "react";
+import { UserContext } from "./assets/components/UserContext.jsx";
+
+
   export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { username, isLoggedIn,setIsLoggedIn,setUsername} = useContext(UserContext);
+
   return (
     <>
-      <Navbar isLoggedIn={isLoggedIn} username={userName}  />
+      <Navbar isLoggedIn={isLoggedIn} setUsername={setUsername} setIsLoggedIn={setIsLoggedIn} username={username}  />
 
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState ,useContext} from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import classNames from "classnames";
-import {fetchUserInfo} from "../../App"
+import { UserContext } from "./UserContext";
+
 export default function Login() {
-  
+  const { fetchUserInfo } = useContext(UserContext);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
@@ -30,6 +31,9 @@ export default function Login() {
       const data = await res.json();
       localStorage.setItem("access", data.access);
       localStorage.setItem("refresh", data.refresh);
+
+      await fetchUserInfo();
+
       navigate("/user");
     } catch (err) {
       setError(err.message);

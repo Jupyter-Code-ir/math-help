@@ -1,11 +1,13 @@
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from persons.models import CustomUser
 
-@login_required
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def user_info(request):
-    user = CustomUser.objects.get(id=request.user.id)
-    return JsonResponse({
+    user = request.user
+    return Response({
         "username": user.username,
         "last_login": user.last_login
     })

@@ -13,21 +13,26 @@ export default function UserPanel() {
     full_name: "",
   });
 
-  useEffect(() => {
-    fetch("http://localhost:8000/api/user-history/", {
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setHistory(data);
-        setLoading(false);
-      });
-    fetch("http://localhost:8000/api/user-info/", {
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => setUserInfo(data));
-  }, []);
+useEffect(() => {
+  const token = localStorage.getItem("access");
+  if (!token) return;
+
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+  };
+
+  fetch("http://localhost:8000/api/user-history/", { headers })
+    .then(res => res.json())
+    .then(data => {
+      setHistory(data);
+      setLoading(false);
+    });
+
+  fetch("http://localhost:8000/api/user-info/", { headers })
+    .then(res => res.json())
+    .then(data => setUserInfo(data));
+}, []);
 
   const activities = [
     ...history.lines.map((item) => ({

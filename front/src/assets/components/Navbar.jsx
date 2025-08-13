@@ -25,6 +25,8 @@ const historyItems = [
 export default function Navbar(props) {
   const  isLoggedIn = props.isLoggedIn;
   const username=props.username;
+  const setIsLoggedIn=props.setIsLoggedIn
+  const setUsername=props.setUsername
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -51,6 +53,12 @@ export default function Navbar(props) {
     document.body.addEventListener("scroll", handleScroll);
     return () => document.body.removeEventListener("scroll", handleScroll);
   }, []);
+  const handleLogout = () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    setIsLoggedIn(false);
+    setUsername("");
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -234,6 +242,7 @@ export default function Navbar(props) {
                 </li>
               </ul>
               <button
+                onClick={handleLogout}
                 className="p-1 m-2 mx-0 duration-200 transition bg-white rounded-full shadow-lg shadow-black/10 items-center text-black hover:shadow-black/30 hover:shadow-lg hover:scale-105"
                 aria-label="خروج"
               >
