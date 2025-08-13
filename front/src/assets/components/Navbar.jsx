@@ -6,7 +6,7 @@ const NavItem = ({ to, children, className }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
-      classNames("nav-item  duration-500 transition w-4/12 rounded-xl p-1 hover:shadow-lg hover:scale-110 hover:bg-blue-950/40 shadow-black/40 shadow text-center", {
+      classNames("nav-item duration-500 transition w-4/12 rounded-xl p-1 hover:shadow-lg hover:scale-110 hover:bg-blue-950/40 shadow-black/40 shadow text-center", {
         "bg-blue-950/10 scale-90 shadow-lg": isActive,
         [className]: className,
       })
@@ -23,14 +23,13 @@ const historyItems = [
 ];
 
 export default function Navbar(props) {
-  const isLoggedIn = props.isLoggedIn;
+  const  isLoggedIn = props.isLoggedIn;
   const username=props.username;
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const historyMenuRef = useRef(null);
-  const userMenuRef = useRef(null); 
-
+  const userMenuRef = useRef(null);
 
 
   useEffect(() => {
@@ -43,14 +42,16 @@ export default function Navbar(props) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     const handleScroll = debounce(() => {
-      const scrollTop =  document.body.scrollTop;
+      const scrollTop = document.body.scrollTop;
       setIsScrolled(scrollTop > 1);
     }, 100);
     handleScroll();
     document.body.addEventListener("scroll", handleScroll);
+    return () => document.body.removeEventListener("scroll", handleScroll);
   }, []);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -65,7 +66,7 @@ useEffect(() => {
   }, []);
 
   const handleMenuOpen = (id) => {
-    setOpenMenuId((prev) => (prev === id ? null : id)); 
+    setOpenMenuId((prev) => (prev === id ? null : id));
   };
 
   return (
@@ -87,15 +88,26 @@ useEffect(() => {
             </a>
           </div>
           {!isLoggedIn && (
-            <a
-              href="#"
-              className="flex order-3 grow-0 lg:w-auto transition duration-500 items-center justify-end backdrop-blur-3xl shadow-sm shadow-black/40 bg-blue-950/60 p-2 rounded-xl gap-2 hover:shadow-lg hover:bg-blue-950/40 hover:scale-110"
-              aria-label="ثبت نام"
-            >
-              <span className="reg-text hidden lg:inline-block">ثبت نام</span>
-              <i className="fa-light fa-pipe" aria-hidden="true"></i>
-              <i className="fa-light fa-user-plus" aria-hidden="true"></i>
-            </a>
+            <>
+              <a
+                href="http://localhost:5173/login"
+                className="flex order-3 grow-0 lg:w-auto transition duration-500 items-center justify-end backdrop-blur-3xl shadow-sm shadow-black/40 bg-blue-950/60 p-2 rounded-xl gap-2 hover:shadow-lg hover:bg-blue-950/40 hover:scale-110"
+                aria-label="ثبت نام"
+              >
+                <span className="reg-text hidden lg:inline-block">ثبت نام</span>
+                <i className="fa-light fa-pipe" aria-hidden="true"></i>
+                <i className="fa-light fa-user-plus" aria-hidden="true"></i>
+              </a>
+              <a
+                href="http://localhost:5173/login"
+                className="flex order-3 grow-0 lg:w-auto transition duration-500 items-center justify-end backdrop-blur-3xl shadow-sm shadow-black/40 bg-blue-950/60 p-2 rounded-xl gap-2 hover:shadow-lg hover:bg-blue-950/40 hover:scale-110"
+                aria-label="ورود"
+              >
+                <span className="profile-text hidden lg:inline-block">ورود</span>
+                <i className="fa-light fa-pipe" aria-hidden="true"></i>
+                <i className="fa-light fa-arrow-right-to-arc" aria-hidden="true"></i>
+              </a>
+            </>
           )}
           {isLoggedIn && (
             <div
@@ -115,10 +127,10 @@ useEffect(() => {
                     "lg:hover:shadow-lg lg:hover:bg-blue-950/40 lg:hover:scale-110": !isMobile,
                   }
                 )}
-                onClick={isMobile ?(e) => {
+                onClick={isMobile ? (e) => {
                   e.preventDefault();
                   handleMenuOpen("history-nav");
-                } :undefined}
+                } : undefined}
               >
                 <span className="history-text hidden lg:inline-block">فعالیت‌ها</span>
                 <i className="fa-light fa-pipe" aria-hidden="true"></i>
@@ -159,6 +171,7 @@ useEffect(() => {
               </div>
             </div>
           )}
+          {isLoggedIn &&(
           <div
             ref={userMenuRef}
             className={classNames("relative inline-block grow-0 lg:w-auto order-1 lg:order-2", {
@@ -173,12 +186,11 @@ useEffect(() => {
                 "flex transition duration-500 items-center justify-end backdrop-blur-3xl shadow-lg bg-blue-950/60 p-2 rounded-xl gap-2",
                 {
                   "scale-110 bg-blue-950/40 shadow-lg": openMenuId === "user-nav-panel",
-                  "lg:hover:shadow-lg lg:hover:bg-blue-950/40 lg:hover:scale-110": !isMobile && isLoggedIn,
-                  "hover:bg-blue-950/40 hover:scale-110 hover:shadow-lg": !isLoggedIn,
+                  "lg:hover:shadow-lg lg:hover:bg-blue-950/40 lg:hover:scale-110": !isMobile,
                 }
               )}
               onClick={
-                isLoggedIn && isMobile
+                isMobile
                   ? (e) => {
                       e.preventDefault();
                       handleMenuOpen("user-nav-panel");
@@ -186,51 +198,50 @@ useEffect(() => {
                   : undefined
               }
             >
-              <span className="profile-text hidden lg:inline-block">{isLoggedIn ? username : "ورود"}</span>
+              <span className="profile-text hidden lg:inline-block">{username}</span>
               <i className="fa-light fa-pipe" aria-hidden="true"></i>
               <i
                 className={classNames("fa-light", isLoggedIn ? "fa-user" : "fa-arrow-right-to-arc")}
                 aria-hidden="true"
               ></i>
             </a>
-            {isLoggedIn && (
-              <div
-                className={classNames(
-                  "drop-menu top-35 lg:top-17 right-0 lg:left-0 p-4 bg-blue-950/80 w-50 saturate-150 rounded-2xl shadow-lg shadow-black/40 group-hover:opacity-100 group-hover:visible : duration-500 transition absolute",
-                  openMenuId === "user-nav-panel" ? "visible opacity-100" : "opacity-0 collapse"
-                )}
-                id="user-menu"
+            <div
+              className={classNames(
+                "drop-menu top-35 lg:top-17 right-0 lg:left-0 p-4 bg-blue-950/80 w-50 saturate-150 rounded-2xl shadow-lg shadow-black/40 group-hover:opacity-100 group-hover:visible duration-500 transition absolute",
+                openMenuId === "user-nav-panel" ? "visible opacity-100" : "opacity-0 collapse"
+              )}
+              id="user-menu"
+            >
+              <p className="text-center p-2">{username}</p>
+              <ul className="mt-2">
+                <li className="m-2 mx-0">
+                  <a
+                    href="#"
+                    className="p-2 flex duration-200 transition bg-white rounded-lg shadow-lg shadow-black/10 text-black hover:shadow-black/30 hover:shadow-lg justify-between items-center hover:scale-105"
+                  >
+                    <span className="order-1">پنل کاربری</span>
+                    <i className="fa-solid order-2 fa-address-card" aria-hidden="true"></i>
+                  </a>
+                </li>
+                <li className="m-2 mx-0">
+                  <a
+                    href="#"
+                    className="p-2 flex duration-200 transition bg-white rounded-lg items-center justify-between shadow-lg shadow-black/10 text-black hover:shadow-black/30 hover:shadow-lg hover:scale-105"
+                  >
+                    <span className="order-1">فعالیت‌ها</span>
+                    <i className="fa-solid order-2 fa-rectangle-history-circle-user" aria-hidden="true"></i>
+                  </a>
+                </li>
+              </ul>
+              <button
+                className="p-1 m-2 mx-0 duration-200 transition bg-white rounded-full shadow-lg shadow-black/10 items-center text-black hover:shadow-black/30 hover:shadow-lg hover:scale-105"
+                aria-label="خروج"
               >
-                <p className="text-center p-2">محمد مهدی وافری</p>
-                <ul className="mt-2">
-                  <li className="m-2 mx-0">
-                    <a
-                      href="#"
-                      className="p-2 flex duration-200 transition bg-white rounded-lg shadow-lg shadow-black/10 text-black hover:shadow-black/30 hover:shadow-lg justify-between items-center hover:scale-105"
-                    >
-                      <span className="order-1">پنل کاربری</span>
-                      <i className="fa-solid order-2 fa-address-card" aria-hidden="true"></i>
-                    </a>
-                  </li>
-                  <li className="m-2 mx-0">
-                    <a
-                      href="#"
-                      className="p-2 flex duration-200 transition bg-white rounded-lg items-center justify-between shadow-lg shadow-black/10 text-black hover:shadow-black/30 hover:shadow-lg hover:scale-105"
-                    >
-                      <span className="order-1">فعالیت‌ها</span>
-                      <i className="fa-solid order-2 fa-rectangle-history-circle-user" aria-hidden="true"></i>
-                    </a>
-                  </li>
-                </ul>
-                <button
-                  className="p-1 m-2 mx-0 duration-200 transition bg-white rounded-full shadow-lg shadow-black/10 items-center text-black hover:shadow-black/30 hover:shadow-lg hover:scale-105"
-                  aria-label="خروج"
-                >
-                  <i className="fa-light fa-power-off mt-2 mx-2" aria-hidden="true"></i>
-                </button>
-              </div>
-            )}
+                <i className="fa-light fa-power-off mt-2 mx-2" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
+          )}
         </div>
         <div className="mb-2 w-full lg:w-7/12 lg:mb-0 gap-4 justify-evenly nav-sec order-1 text-shadow-sm text-shadow-black/50 flex items-center size-6">
           <NavItem to="/eq">مختصات</NavItem>
